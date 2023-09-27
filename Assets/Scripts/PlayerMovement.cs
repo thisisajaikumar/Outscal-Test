@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-
     public static PlayerMovement Instance;
 
     [Header("Setting")]
@@ -40,61 +39,40 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, detectionDistance, groundLayer);
         isHitEnemy = Physics2D.Raycast(transform.position, Vector2.down, detectionDistance, enemyLayer);
 
-        // Debug.DrawRay(transform.position, Vector2.down * detectionDistance, Color.red);
-
         float horizontalInput = Input.GetAxis("Horizontal");
+        float jumpForce = isGrounded ? (horizontalInput == 0 ? idleJumpForce : moveableJumpForce) : 0f;
 
-        if (horizontalInput > 0)
-        {
-            sr.flipX = false;
-        }
-        else if (horizontalInput < 0)
-        {
-            sr.flipX = true;
-        }
+        HandleMovement(horizontalInput, jumpForce);
+        UpdatePlayerState(horizontalInput, jumpForce);
+    }
+
+    private void HandleMovement(float horizontalInput, float jumpForce)
+    {
+        sr.flipX = horizontalInput < 0;
 
         Vector2 movement = new Vector2(horizontalInput * moveSpeed, rb.velocity.y);
         rb.velocity = movement;
 
-        if (isGrounded || isHitEnemy)
+        if (isGrounded && Input.GetButtonDown("Jump"))
         {
-            float jumpForce;
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+        }
+    }
 
-            if (horizontalInput == 0)
-            {
-                PlayAnimation(PlayerState.Idle);
-                jumpForce = idleJumpForce;
-            }
-            else
-            {
-                if (Input.GetKey(KeyCode.LeftShift))
-                {
-                    PlayAnimation(PlayerState.Run);
-                }
-                else
-                {
-                    PlayAnimation(PlayerState.Walk);
-                }
+    private void UpdatePlayerState(float horizontalInput, float jumpForce)
+    {
+        PlayerState newState;
 
-                jumpForce = moveableJumpForce;
-            }
-
-            if (Input.GetButtonDown("Jump"))
-            {
-                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-            }
+        if (isGrounded)
+        {
+            newState = (horizontalInput == 0) ? PlayerState.Idle : (Input.GetKey(KeyCode.LeftShift) ? PlayerState.Run : PlayerState.Walk);
         }
         else
         {
-            if (rb.velocity.x > 0)
-            {
-                PlayAnimation(PlayerState.Jump);
-            }
-            else
-            {
-                PlayAnimation(PlayerState.Fall);
-            }
+            newState = (rb.velocity.y > 0) ? PlayerState.Jump : PlayerState.Fall;
         }
+
+        PlayAnimation(newState);
     }
 
 
